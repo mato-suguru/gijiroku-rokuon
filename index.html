@@ -39,6 +39,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 #marks{margin:8px 0 0;padding:0;list-style:none;font-size:15px}#marks li{padding:4px 0;border-bottom:1px solid var(--line)}#marks b{color:var(--blue);margin-right:8px;font-variant-numeric:tabular-nums}
 .files{display:flex;flex-direction:column;gap:10px}.file{background:var(--card);border-radius:12px;padding:12px 14px}.file audio{width:100%;margin-top:6px}
 .file .nm{font-weight:700;overflow-wrap:anywhere}.file .go{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tr label{display:block;font-size:14px;color:var(--mute);margin:10px 0 4px}
+.tr .go2{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tr input[type=time]{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+#trProg{margin-top:12px}#trBar{height:12px;border-radius:6px;background:var(--line);overflow:hidden}#trBar i{display:block;height:100%;width:0;background:var(--red);transition:width .3s}
+#trTxt{font-size:14px;margin-top:6px;min-height:22px}
+#trOut{width:100%;min-height:220px;font:15px/1.7 inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin-top:10px;resize:vertical}
+button.pri{background:var(--red);border-color:var(--red);color:#fff}
 ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
 .hint{font-size:13px;color:var(--mute)}
 @media(prefers-reduced-motion:no-preference){#rec.on{animation:p 1.6s ease-in-out infinite}@keyframes p{50%{box-shadow:0 0 0 12px rgb(230 38 31/.15)}}}
@@ -76,6 +83,20 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  <div id="recover"></div>
 </div>
 
+<div class="card tr" id="trCard"><h2>文字起こし</h2>
+ <p class="hint" style="margin-top:0">録音をこのパソコンの中で文字にします。音声はどこにも送信されません。初回だけ、文字起こし用のデータ（数百MB）をダウンロードします。2回目からは保存されたデータを使います（GitHubのURLで開いた場合）。</p>
+ <label for="trModel">精度と速さ</label>
+ <select id="trModel"><option value="small">標準（おすすめ・約250MB）</option><option value="base">速い（精度は低め・約80MB）</option><option value="turbo">高精度（性能の高いパソコン向け・約600MB）</option></select>
+ <label for="trStart">録音を始めた時刻（文字起こしの時刻に使います）</label>
+ <input type="time" step="1" id="trStart">
+ <div class="go2"><button id="trPick">録音ファイルを選んで文字起こし</button><input type="file" id="trFile" accept="audio/*,video/webm,video/mp4,.webm,.m4a,.mp3,.wav" hidden></div>
+ <p class="hint">録音を止めたあとは、「保存した録音」の「文字起こし」ボタンからも始められます。</p>
+ <div id="trProg" hidden><div id="trBar"><i></i></div><div id="trTxt" aria-live="polite"></div><div class="go2"><button id="trStop">中止</button></div></div>
+ <div id="trRes" hidden><textarea id="trOut" aria-label="文字起こしの結果"></textarea>
+ <div class="go2"><button class="pri" id="trCopy">コピー（議事録ラインに貼る）</button><button id="trSave">テキストファイルで保存</button></div>
+ <p class="hint">議事録ラインの「会話の記録」に貼り付けると、議事録の作成と、時刻からの聞き直しにそのまま使えます。話している人の名前は入らないので、必要なら直してください。</p></div>
+</div>
+
 <div class="card"><h2>使い方</h2>
  <ol>
  <li>このファイルを<b>Chrome</b>か<b>Edge</b>で開きます（ダブルクリックで開かない場合は、ファイルをブラウザの画面にドラッグ）。</li>
@@ -84,6 +105,7 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  <li>議事録ラインの「録音して文字起こし」も押します（文字起こしと録音を同時に）。</li>
  <li>会議が終わったら、赤いボタン（四角）を押して停止します。録音ファイルがダウンロードフォルダに保存されます。</li>
  <li>議事録ラインで会議を開き、「録音ファイルを追加」から保存したファイルを選びます。開始時刻はファイル名から自動で入ります。</li>
+ <li>文字にしたいときは、「保存した録音」の「文字起こし」を押します。終わったら「コピー」して、議事録ラインの「会話の記録」に貼り付け、「議事録を作成する」を押します。</li>
  </ol>
  <p class="hint">録音中は、このページを閉じたりパソコンをスリープさせたりしないでください。万一ページが閉じても、途中まではこのパソコンに残っていて、次に開いたとき「前回の録音を復元」から保存できます。音量の目安：1時間で約15MB。</p>
 </div>
@@ -171,7 +193,7 @@ function addFile(blob,name,sec){$('#noFile').hidden=true;const u=URL.createObjec
  const nm=document.createElement('div');nm.className='nm';nm.textContent=name;
  const info=document.createElement('div');info.className='hint';info.textContent=`${(blob.size/1048576).toFixed(1)}MB${sec?'・'+dur(sec):''}・ダウンロードフォルダに保存しました`;
  const au=document.createElement('audio');au.controls=true;au.src=u;
- const go=document.createElement('div');go.className='go';const b=document.createElement('button');b.textContent='もう一度保存';b.onclick=()=>save(u,name);go.appendChild(b);
+ const go=document.createElement('div');go.className='go';const b=document.createElement('button');b.textContent='もう一度保存';b.onclick=()=>save(u,name);const t=document.createElement('button');t.className='pri';t.textContent='文字起こし';t.onclick=()=>transcribe(blob,name);go.append(t,b);
  d.append(nm,info,au,go);$('#files').prepend(d);save(u,name)}
 function save(u,name){const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove()}
 
@@ -180,7 +202,68 @@ function addMark(){if(!start||!rec||rec.state!=='recording')return;const t=$('#m
 $('#mark').onclick=addMark;$('#memo').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addMark()}};
 function renderMarks(){const ul=$('#marks');ul.innerHTML='';for(const m of marks){const li=document.createElement('li');const b=document.createElement('b');b.textContent=m.t;li.append(b,document.createTextNode(m.x));ul.appendChild(li)}$('#copyMarks').disabled=!marks.length}
 $('#copyMarks').onclick=async e=>{const t=marks.map(m=>`[${m.t}] メモ：${m.x}`).join('\n');try{await navigator.clipboard.writeText(t);e.target.textContent='コピーしました';setTimeout(()=>e.target.textContent='メモをコピー',1500)}catch(_){prompt('コピーしてください',t)}};
-addEventListener('beforeunload',e=>{if(rec&&rec.state==='recording'){e.preventDefault();e.returnValue=''}});
+
+/* ---- 文字起こし ---- */
+let trBusy=false,worker=null,trLines=[],trName='';
+const MODELS={base:'onnx-community/whisper-base',small:'onnx-community/whisper-small',turbo:'onnx-community/whisper-large-v3-turbo'};
+const WORKER=`
+const VERS=['3.7.5','3.7.1','3.6.3','3.5.2','3.5.1','3.4.2','3.3.3','3.2.4','3.1.2','3.0.2'];
+let tr=null,cur='',stop=false;
+const BAD=/^(ご視聴ありがとうございました|ご清聴ありがとうございました|チャンネル登録|字幕|おやすみなさい|お疲れ様でした。?)[。！!]*$/;
+async function load(model,gpu,heavy){let lib=null;for(const v of VERS){try{lib=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@'+v);break}catch(e){}}
+ if(!lib)throw new Error('lib');lib.env.allowLocalModels=false;
+ const prog=p=>{if(p.status==='progress'&&p.total)postMessage({t:'dl',file:p.file,loaded:p.loaded,total:p.total})};
+ const opt=gpu?{device:'webgpu',dtype:heavy?{encoder_model:'fp32',decoder_model_merged:'q4'}:'fp32'}:{device:'wasm',dtype:'q8'};
+ try{tr=await lib.pipeline('automatic-speech-recognition',model,{...opt,progress_callback:prog});postMessage({t:'dev',d:gpu?'gpu':'cpu'})}
+ catch(e){if(!gpu)throw e;tr=await lib.pipeline('automatic-speech-recognition',model,{device:'wasm',dtype:'q8',progress_callback:prog});postMessage({t:'dev',d:'cpu'})}}
+onmessage=async e=>{const m=e.data;if(m.t==='stop'){stop=true;return}
+ if(m.t!=='run')return;stop=false;
+ try{if(!tr||cur!==m.model){tr=null;await load(m.model,m.gpu,m.heavy);cur=m.model}
+  const a=m.audio,SR=16000,W=30*SR,n=Math.ceil(a.length/W);postMessage({t:'start',n});
+  for(let i=0;i<n;i++){if(stop){postMessage({t:'stopped'});return}
+   const seg=a.subarray(i*W,Math.min(a.length,(i+1)*W));let sq=0;for(let k=0;k<seg.length;k+=8)sq+=seg[k]*seg[k];const rms=Math.sqrt(sq/(seg.length/8));
+   let items=[];
+   if(rms>0.004&&seg.length>SR*0.5){const out=await tr(seg,{language:'japanese',task:'transcribe',return_timestamps:true});
+    const ch=out.chunks&&out.chunks.length?out.chunks:[{timestamp:[0,null],text:out.text||''}];
+    items=ch.map(c=>({s:i*30+((c.timestamp&&c.timestamp[0])||0),text:String(c.text||'').trim()})).filter(x=>x.text&&!BAD.test(x.text))}
+   postMessage({t:'seg',i,n,items})}
+  postMessage({t:'done'})}
+ catch(err){postMessage({t:'err',msg:String(err&&err.message||err)})}};`;
+function parseStart(name){const m=(name||'').match(/(\d{4})-(\d{2})-(\d{2})[_ T](\d{2})[-:](\d{2})[-:](\d{2})/);return m?`${m[4]}:${m[5]}:${m[6]}`:''}
+function clock(base,sec){const b=(base||'00:00:00').split(':').map(Number);let t=Math.floor((b[0]||0)*3600+(b[1]||0)*60+(b[2]||0)+sec);t%=86400;return `${pad(Math.floor(t/3600))}:${pad(Math.floor(t%3600/60))}:${pad(t%60)}`}
+function trMsg(t,p){$('#trTxt').textContent=t;if(p!=null)$('#trBar i').style.width=Math.round(p*100)+'%'}
+async function decode16k(blob){const ctx=new OfflineAudioContext(1,16000,16000);const buf=await ctx.decodeAudioData(await blob.arrayBuffer());
+ if(buf.numberOfChannels===1)return buf.getChannelData(0).slice();const out=new Float32Array(buf.length);for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<d.length;i++)out[i]+=d[i]/buf.numberOfChannels}return out}
+async function transcribe(blob,name){if(trBusy)return;trBusy=true;trName=name;
+ $('#trCard').scrollIntoView({behavior:'smooth',block:'start'});
+ const st=parseStart(name);if(st)$('#trStart').value=st;
+ $('#trProg').hidden=false;$('#trStop').hidden=false;$('#trRes').hidden=true;$('#trPick').disabled=true;trLines=[];trMsg('音声を読み込んでいます…',0);
+ let audio;try{audio=await decode16k(blob)}catch(e){trMsg('この録音は読み込めませんでした。録音ページで保存したファイルか、m4a・mp3・wavでお試しください。');return trEnd()}
+ const key=$('#trModel').value,gpu=!!navigator.gpu&&!!(await navigator.gpu.requestAdapter().catch(()=>null));
+ if(key==='turbo'&&!gpu&&!confirm('このパソコンでは高精度モードがとても遅くなります（1時間の会議で数時間）。「標準」に切り替えることをおすすめします。このまま続けますか？')){return trEnd()}
+ if(!worker){worker=new Worker(URL.createObjectURL(new Blob([WORKER],{type:'text/javascript'})),{type:'module'})}
+ const total=audio.length/16000;let t0=0,dev='';const dls={};
+ trMsg('文字起こしの準備をしています…（初回はデータのダウンロードに数分かかります）',0);
+ worker.onmessage=e=>{const m=e.data;
+  if(m.t==='dl'){dls[m.file]=[m.loaded,m.total];let a=0,b=0;for(const[x,y] of Object.values(dls)){a+=x;b+=y}trMsg(`文字起こし用のデータをダウンロードしています… ${(a/1048576).toFixed(0)} / ${(b/1048576).toFixed(0)}MB（初回のみ）`,b?a/b:0)}
+  else if(m.t==='dev'){dev=m.d}
+  else if(m.t==='start'){t0=Date.now();trMsg(`文字起こしをしています… 0%（${dev==='gpu'?'高速モード':'通常モード'}）`,0)}
+  else if(m.t==='seg'){for(const it of m.items)trLines.push(`[${clock($('#trStart').value,it.s)}] ${it.text}`);showOut();
+   const p=(m.i+1)/m.n,el=(Date.now()-t0)/1000,rem=p>0?el/p-el:0;trMsg(`文字起こしをしています… ${Math.round(p*100)}%（残り約${Math.max(1,Math.round(rem/60))}分・${dev==='gpu'?'高速モード':'通常モード'}）`,p)}
+  else if(m.t==='done'){trMsg(`完了しました（録音の長さ ${dur(total)}）。下の文章を確認して、コピーしてください。`,1);showOut();trEnd(true)}
+  else if(m.t==='stopped'){trMsg('中止しました。途中までの文章は下に残っています。');showOut();trEnd(true)}
+  else if(m.t==='err'){trMsg(m.msg==='lib'?'文字起こしの仕組みを読み込めませんでした。ネットにつながっているか確認してください。':'文字起こしに失敗しました。「速い」モードにするか、ページを開き直してお試しください。');showOut();trEnd(true)}};
+ const ab=audio.buffer;worker.postMessage({t:'run',audio,model:MODELS[key],gpu,heavy:key==='turbo'},[ab])}
+function showOut(){if(!trLines.length)return;$('#trRes').hidden=false;$('#trOut').value=trLines.join('\n')}
+function trEnd(){trBusy=false;$('#trPick').disabled=false;$('#trStop').disabled=false;$('#trStop').hidden=true}
+$('#trStop').onclick=()=>{if(worker&&trBusy){worker.postMessage({t:'stop'});$('#trStop').disabled=true;trMsg('中止しています…（今の区切りが終わるまで少し待ちます）')}};
+$('#trPick').onclick=()=>$('#trFile').click();
+$('#trFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)transcribe(f,f.name)};
+$('#trStart').onchange=()=>{};
+$('#trCopy').onclick=async e=>{const t=$('#trOut').value;try{await navigator.clipboard.writeText(t);e.target.textContent='コピーしました';setTimeout(()=>e.target.textContent='コピー（議事録ラインに貼る）',1600)}catch(_){$('#trOut').select()}};
+$('#trSave').onclick=()=>{const u=URL.createObjectURL(new Blob([$('#trOut').value],{type:'text/plain'}));save(u,(trName||'録音').replace(/\.[^.]+$/,'')+'_文字起こし.txt')};
+
+addEventListener('beforeunload',e=>{if((rec&&rec.state==='recording')||trBusy){e.preventDefault();e.returnValue=''}});
 }
 </script>
 </body></html>
