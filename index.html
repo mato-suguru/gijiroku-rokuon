@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>議事録ライン 録音ページ</title>
+<style>
+/* VOICE: 会議の直前に開いて、迷わず押せる道具
+IDEA: 議事録ラインと同じ路線図。録音は1本の赤い線
+PICTURE: 大きな赤い録音ボタンと経過時間、音量の2本のメーター
+COLOUR+TYPE: 白地に赤（録音）、青（パソコンの音）、緑（マイク）、黒。Windowsの日本語フォント
+LAYOUT: 1列。上に設定、中央にボタンと時間、下にメモと保存したファイル */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0e1116);--ink:light-dark(#111418,#eef1f5);--mute:light-dark(#5b6370,#9aa3b0);--line:light-dark(#e4e7ec,#252b35);--card:light-dark(#f6f7f9,#161b23);--red:#e6261f;--blue:#0a5cff;--green:#00a05a;--amber:#ffb400}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Yu Gothic UI","Yu Gothic","Meiryo","Hiragino Sans",system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 18px 60px}
+h1{font-size:26px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+h1 svg{flex:none}
+.sub{color:var(--mute);font-size:14px;margin:0 0 18px}
+.card{border:2px solid var(--line);border-radius:16px;padding:16px 18px;margin:14px 0}
+.card h2{font-size:16px;margin:0 0 10px}
+label.row{display:flex;gap:10px;align-items:flex-start;margin:8px 0;font-size:15px;cursor:pointer}
+label.row input{width:22px;height:22px;margin-top:2px;accent-color:var(--blue);flex:none}
+select,input[type=text]{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+button{font:inherit;font-weight:700;cursor:pointer;min-height:44px;padding:0 18px;border-radius:999px;border:2px solid var(--ink);background:transparent;color:var(--ink)}
+button:hover{background:var(--card)}button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 0 10px}
+#rec{width:150px;height:150px;border-radius:50%;border:10px solid var(--red);background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0}
+#rec span{display:block;width:62px;height:62px;border-radius:50%;background:var(--red);transition:border-radius .2s,width .2s,height .2s}
+#rec.on span{border-radius:10px;width:54px;height:54px}
+#rec:hover{background:var(--card)}
+#time{font:700 44px/1 "Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+#state{font-weight:700;min-height:26px;text-align:center}
+#state.on{color:var(--red)}
+.meters{display:grid;gap:8px;width:100%;max-width:520px}
+.m{display:grid;grid-template-columns:8em minmax(0,1fr);gap:10px;align-items:center;font-size:14px}
+.bar{height:12px;border-radius:6px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--c);transition:width .08s}
+.warn{border-left:6px solid var(--amber);background:var(--card);padding:10px 14px;border-radius:8px;font-size:15px;margin:10px 0}
+.err{border-left-color:var(--red)}
+.memo{display:flex;gap:8px}.memo input{flex:1}
+#marks{margin:8px 0 0;padding:0;list-style:none;font-size:15px}#marks li{padding:4px 0;border-bottom:1px solid var(--line)}#marks b{color:var(--blue);margin-right:8px;font-variant-numeric:tabular-nums}
+.files{display:flex;flex-direction:column;gap:10px}.file{background:var(--card);border-radius:12px;padding:12px 14px}.file audio{width:100%;margin-top:6px}
+.file .nm{font-weight:700;overflow-wrap:anywhere}.file .go{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
+.hint{font-size:13px;color:var(--mute)}
+@media(prefers-reduced-motion:no-preference){#rec.on{animation:p 1.6s ease-in-out infinite}@keyframes p{50%{box-shadow:0 0 0 12px rgb(230 38 31/.15)}}}
+</style></head><body><main>
+<h1><svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><rect x="14" y="2" width="6" height="30" rx="3" fill="#0a5cff"/><circle cx="17" cy="8" r="6" fill="var(--bg)" stroke="#e6261f" stroke-width="4"/><circle cx="17" cy="26" r="6" fill="var(--bg)" stroke="#00a05a" stroke-width="4"/></svg>議事録ライン 録音ページ</h1>
+<p class="sub">マイクの声と、パソコンから出ている音（Discordの相手の声など）を一緒に録音します。録音はこのパソコンの中だけで行われ、どこにも送信されません。</p>
+
+<div id="envWarn"></div>
+
+<div class="card"><h2>録音の設定</h2>
+ <label for="mic" class="hint">マイク</label>
+ <select id="mic"><option value="">既定のマイク</option></select>
+ <label class="row"><input type="checkbox" id="sys" checked><span><b>パソコンの音も録音する</b>（Discordの通話相手の声など）<br><span class="hint">録音開始を押すと共有の画面が出ます。「画面全体」タブで画面を選び、下の<b>「システムの音声も共有する」をオン</b>にして「共有」を押してください。</span></span></label>
+</div>
+
+<div class="stage">
+ <button id="rec" aria-label="録音開始"><span></span></button>
+ <div id="time">0:00:00</div>
+ <div id="state" aria-live="polite">ボタンを押すと録音を始めます</div>
+ <div class="meters">
+  <div class="m" style="--c:var(--green)"><span>マイク</span><div class="bar"><i id="lvMic"></i></div></div>
+  <div class="m" style="--c:var(--blue)"><span>パソコンの音</span><div class="bar"><i id="lvSys"></i></div></div>
+ </div>
+</div>
+
+<div class="card"><h2>メモ・印（録音中に使えます）</h2>
+ <div class="memo"><input type="text" id="memo" placeholder="例：ここ重要／手数料の話" aria-label="メモ"><button id="mark" disabled>印をつける</button></div>
+ <ul id="marks"></ul>
+ <div style="margin-top:8px"><button id="copyMarks" disabled>メモをコピー</button> <span class="hint">議事録ラインの「会話の記録」に貼ると、時刻から聞き直せます。</span></div>
+</div>
+
+<div class="card"><h2>保存した録音</h2>
+ <p class="hint" id="noFile">停止すると、録音ファイルが自動でダウンロードフォルダに保存されます。ファイル名に録音を始めた日時が入ります。</p>
+ <div class="files" id="files"></div>
+ <div id="recover"></div>
+</div>
+
+<div class="card"><h2>使い方</h2>
+ <ol>
+ <li>このファイルを<b>Chrome</b>か<b>Edge</b>で開きます（ダブルクリックで開かない場合は、ファイルをブラウザの画面にドラッグ）。</li>
+ <li>会議の直前に、赤い丸のボタンを押します。初回はマイクの使用許可が出るので「許可」を押します。</li>
+ <li>「パソコンの音も録音する」がオンなら、共有の画面で「画面全体」→画面を選ぶ→<b>「システムの音声も共有する」をオン</b>→「共有」。</li>
+ <li>議事録ラインの「録音して文字起こし」も押します（文字起こしと録音を同時に）。</li>
+ <li>会議が終わったら、赤いボタン（四角）を押して停止します。録音ファイルがダウンロードフォルダに保存されます。</li>
+ <li>議事録ラインで会議を開き、「録音ファイルを追加」から保存したファイルを選びます。開始時刻はファイル名から自動で入ります。</li>
+ </ol>
+ <p class="hint">録音中は、このページを閉じたりパソコンをスリープさせたりしないでください。万一ページが閉じても、途中まではこのパソコンに残っていて、次に開いたとき「前回の録音を復元」から保存できます。音量の目安：1時間で約15MB。</p>
+</div>
+</main>
+<script>
+{
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const hms=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const fname=d=>`録音_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.webm`;
+const dur=s=>`${Math.floor(s/3600)}:${pad(Math.floor(s%3600/60))}:${pad(Math.floor(s%60))}`;
+let ac=null,rec=null,micS=null,sysS=null,chunks=[],start=null,tick=null,raf=null,wake=null,marks=[],sessionId=null,an={};
+
+/* 環境チェック */
+(function(){const w=$('#envWarn');const ua=navigator.userAgent;const ok=/Chrome|Edg\//.test(ua)&&!/OPR|Firefox/.test(ua);
+ if(!navigator.mediaDevices||!window.MediaRecorder){w.innerHTML='<div class="warn err">このブラウザでは録音できません。ChromeかEdgeで開いてください。</div>';$('#rec').disabled=true;return}
+ if(!ok)w.innerHTML='<div class="warn">ChromeかEdgeで開くことをおすすめします。ほかのブラウザでは、パソコンの音を録音できないことがあります。</div>';})();
+
+/* マイク一覧 */
+async function listMics(){try{const ds=await navigator.mediaDevices.enumerateDevices();const sel=$('#mic'),v=sel.value;const mics=ds.filter(d=>d.kind==='audioinput'&&d.deviceId!=='default'&&d.deviceId!=='communications');
+ sel.innerHTML='<option value="">既定のマイク</option>'+mics.map((d,i)=>`<option value="${d.deviceId.replace(/"/g,'')}">${(d.label||'マイク'+(i+1)).replace(/[<>&"]/g,'')}</option>`).join('');sel.value=v}catch(e){}}
+listMics();navigator.mediaDevices&&navigator.mediaDevices.addEventListener&&navigator.mediaDevices.addEventListener('devicechange',listMics);
+
+/* 途中保存（ページが閉じても残す） */
+let idb=null;
+function openDB(){return new Promise(r=>{try{const q=indexedDB.open('gijiroku-rokuon',1);q.onupgradeneeded=()=>q.result.createObjectStore('c',{autoIncrement:true});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}})}
+function put(obj){if(!idb)return;try{idb.transaction('c','readwrite').objectStore('c').add(obj)}catch(e){}}
+function clearDB(){return new Promise(r=>{if(!idb)return r();try{const t=idb.transaction('c','readwrite');t.objectStore('c').clear();t.oncomplete=()=>r();t.onerror=()=>r()}catch(e){r()}})}
+function allDB(){return new Promise(r=>{if(!idb)return r([]);try{const q=idb.transaction('c').objectStore('c').getAll();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>r([])}catch(e){r([])}})}
+(async()=>{idb=await openDB();const rows=await allDB();const parts=rows.filter(x=>x.blob);if(!parts.length)return;
+ const meta=rows.find(x=>x.start)||{start:Date.now()};const s=new Date(meta.start);
+ $('#recover').innerHTML=`<div class="warn">前回の録音（${s.toLocaleString('ja-JP')}開始）が保存されずに残っています。<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button id="rcOk">前回の録音を復元して保存</button><button id="rcNo">破棄する</button></div></div>`;
+ $('#rcOk').onclick=async()=>{const b=new Blob(parts.map(x=>x.blob),{type:'audio/webm'});addFile(b,fname(s),null);await clearDB();$('#recover').innerHTML=''};
+ $('#rcNo').onclick=async()=>{await clearDB();$('#recover').innerHTML=''}})();
+
+/* 音量メーター */
+function meter(stream,key){const src=ac.createMediaStreamSource(stream);const a=ac.createAnalyser();a.fftSize=512;src.connect(a);an[key]={a,buf:new Uint8Array(a.fftSize)};return src}
+function draw(){for(const [k,id] of [['mic','#lvMic'],['sys','#lvSys']]){const o=an[k],el=$(id);if(!o){el.style.width='0';continue}o.a.getByteTimeDomainData(o.buf);let m=0;for(const v of o.buf)m=Math.max(m,Math.abs(v-128));el.style.width=Math.min(100,m/128*180)+'%'}raf=requestAnimationFrame(draw)}
+
+function setState(t,on){const s=$('#state');s.textContent=t;s.classList.toggle('on',!!on)}
+
+async function startRec(){
+ const btn=$('#rec');btn.disabled=true;setState('準備しています…');
+ try{
+  ac=new AudioContext();
+  const dest=ac.createMediaStreamDestination();
+  const id=$('#mic').value;
+  micS=await navigator.mediaDevices.getUserMedia({audio:{deviceId:id?{exact:id}:undefined,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  listMics();
+  const mg=ac.createGain();mg.gain.value=1;meter(micS,'mic').connect(mg);mg.connect(dest);
+  if($('#sys').checked){
+   setState('共有の画面で「画面全体」を選び、「システムの音声も共有する」をオンにしてください');
+   try{sysS=await navigator.mediaDevices.getDisplayMedia({video:true,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,suppressLocalAudioPlayback:false},systemAudio:'include',selfBrowserSurface:'exclude'});
+    if(!sysS.getAudioTracks().length){sysS.getTracks().forEach(t=>t.stop());sysS=null;showSysWarn('パソコンの音が共有されませんでした。マイクの声だけ録音します。相手の声も録る場合は、停止してやり直し、「システムの音声も共有する」をオンにしてください。')}
+    else{const sg=ac.createGain();sg.gain.value=1;meter(new MediaStream(sysS.getAudioTracks()),'sys').connect(sg);sg.connect(dest);
+     sysS.getAudioTracks()[0].addEventListener('ended',()=>showSysWarn('パソコンの音の共有が止まりました。マイクの録音は続いています。'))}}
+   catch(e){sysS=null;showSysWarn('パソコンの音の共有がキャンセルされました。マイクの声だけ録音しています。')}
+  }
+  const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+  rec=new MediaRecorder(dest.stream,{mimeType:mime,audioBitsPerSecond:32000});
+  chunks=[];start=new Date();marks=[];renderMarks();await clearDB();put({start:start.getTime()});
+  rec.ondataavailable=e=>{if(e.data&&e.data.size){chunks.push(e.data);put({blob:e.data})}};
+  rec.onstop=finish;
+  rec.start(5000);
+  btn.classList.add('on');btn.setAttribute('aria-label','録音停止');btn.disabled=false;
+  $('#mark').disabled=false;
+  setState(`録音中（${hms(start)} 開始）`,true);
+  tick=setInterval(()=>{$('#time').textContent=dur((Date.now()-start)/1000)},500);
+  draw();
+  try{wake=await navigator.wakeLock.request('screen')}catch(e){}
+ }catch(e){cleanup();btn.disabled=false;
+  setState(e&&e.name==='NotAllowedError'?'マイクが許可されませんでした。アドレスバー左の鍵マークからマイクを「許可」にしてください。':e&&e.name==='NotFoundError'?'マイクが見つかりません。マイクをつないでからやり直してください。':'録音を始められませんでした。ページを開き直してお試しください。')}
+}
+function showSysWarn(t){const w=document.createElement('div');w.className='warn';w.textContent=t;$('#envWarn').appendChild(w)}
+function stopRec(){if(rec&&rec.state!=='inactive'){setState('保存しています…');rec.stop()}}
+function cleanup(){clearInterval(tick);cancelAnimationFrame(raf);an={};$('#lvMic').style.width='0';$('#lvSys').style.width='0';
+ [micS,sysS].forEach(s=>s&&s.getTracks().forEach(t=>t.stop()));micS=sysS=null;if(ac){ac.close().catch(()=>{});ac=null}
+ if(wake){wake.release().catch(()=>{});wake=null}}
+async function finish(){const blob=new Blob(chunks,{type:'audio/webm'});const s=start,sec=(Date.now()-s)/1000;cleanup();
+ const btn=$('#rec');btn.classList.remove('on');btn.setAttribute('aria-label','録音開始');$('#mark').disabled=true;
+ addFile(blob,fname(s),sec);await clearDB();
+ setState(`保存しました（${dur(sec)}）。議事録ラインの「録音ファイルを追加」から選んでください。`)}
+function addFile(blob,name,sec){$('#noFile').hidden=true;const u=URL.createObjectURL(blob);
+ const d=document.createElement('div');d.className='file';
+ const nm=document.createElement('div');nm.className='nm';nm.textContent=name;
+ const info=document.createElement('div');info.className='hint';info.textContent=`${(blob.size/1048576).toFixed(1)}MB${sec?'・'+dur(sec):''}・ダウンロードフォルダに保存しました`;
+ const au=document.createElement('audio');au.controls=true;au.src=u;
+ const go=document.createElement('div');go.className='go';const b=document.createElement('button');b.textContent='もう一度保存';b.onclick=()=>save(u,name);go.appendChild(b);
+ d.append(nm,info,au,go);$('#files').prepend(d);save(u,name)}
+function save(u,name){const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove()}
+
+$('#rec').onclick=()=>{if(rec&&rec.state==='recording')stopRec();else startRec()};
+function addMark(){if(!start||!rec||rec.state!=='recording')return;const t=$('#memo').value.trim()||'★印';marks.push({t:hms(new Date()),x:t});$('#memo').value='';renderMarks()}
+$('#mark').onclick=addMark;$('#memo').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addMark()}};
+function renderMarks(){const ul=$('#marks');ul.innerHTML='';for(const m of marks){const li=document.createElement('li');const b=document.createElement('b');b.textContent=m.t;li.append(b,document.createTextNode(m.x));ul.appendChild(li)}$('#copyMarks').disabled=!marks.length}
+$('#copyMarks').onclick=async e=>{const t=marks.map(m=>`[${m.t}] メモ：${m.x}`).join('\n');try{await navigator.clipboard.writeText(t);e.target.textContent='コピーしました';setTimeout(()=>e.target.textContent='メモをコピー',1500)}catch(_){prompt('コピーしてください',t)}};
+addEventListener('beforeunload',e=>{if(rec&&rec.state==='recording'){e.preventDefault();e.returnValue=''}});
+}
+</script>
+</body></html>
