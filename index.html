@@ -46,15 +46,28 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 #trTxt{font-size:14px;margin-top:6px;min-height:22px}
 #trOut{width:100%;min-height:220px;font:15px/1.7 inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin-top:10px;resize:vertical}
 button.pri{background:var(--red);border-color:var(--red);color:#fff}
+.ver{margin-left:auto;font-size:12px;font-weight:700;color:var(--mute);border:1.5px solid var(--line);border-radius:999px;padding:2px 10px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 8px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+.tabs button{min-height:64px;border-radius:16px;border:2px solid var(--line);font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 12px}
+.tabs button small{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--line);font-size:14px;flex:none}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}.tabs button[aria-selected=true] small{background:var(--red);color:#fff}
+.drop{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;border:3px dashed var(--line);border-radius:16px;padding:28px 16px;margin:6px 0 14px}
+.drop b{font-size:18px}.drop small{font-size:13px;color:var(--mute)}.drop.over{border-color:var(--red);background:var(--card)}
+.guide summary{cursor:pointer;font-weight:700;min-height:32px;display:flex;align-items:center}
+@media(max-width:520px){.tabs button{font-size:15px;min-height:56px}}
 ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
 .hint{font-size:13px;color:var(--mute)}
 @media(prefers-reduced-motion:no-preference){#rec.on{animation:p 1.6s ease-in-out infinite}@keyframes p{50%{box-shadow:0 0 0 12px rgb(230 38 31/.15)}}}
 </style></head><body><main>
-<h1><svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><rect x="14" y="2" width="6" height="30" rx="3" fill="#0a5cff"/><circle cx="17" cy="8" r="6" fill="var(--bg)" stroke="#e6261f" stroke-width="4"/><circle cx="17" cy="26" r="6" fill="var(--bg)" stroke="#00a05a" stroke-width="4"/></svg>議事録ライン 録音ページ</h1>
+<h1><svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><rect x="14" y="2" width="6" height="30" rx="3" fill="#0a5cff"/><circle cx="17" cy="8" r="6" fill="var(--bg)" stroke="#e6261f" stroke-width="4"/><circle cx="17" cy="26" r="6" fill="var(--bg)" stroke="#00a05a" stroke-width="4"/></svg>議事録ライン 録音ページ<span class="ver">版 11/25</span></h1>
 <p class="sub">マイクの声と、パソコンから出ている音（Discordの相手の声など）を一緒に録音します。録音はこのパソコンの中だけで行われ、どこにも送信されません。</p>
 
 <div id="envWarn"></div>
-
+<nav class="tabs" role="tablist" aria-label="ページの切り替え">
+ <button role="tab" id="tabBtnRec" data-tab="rec" aria-selected="true"><small>1</small>録音する</button>
+ <button role="tab" id="tabBtnTr" data-tab="tr" aria-selected="false"><small>2</small>録音ファイルを文字起こし</button>
+</nav>
+<section id="tabRec" role="tabpanel" aria-labelledby="tabBtnRec">
 <div class="card"><h2>録音の設定</h2>
  <label for="mic" class="hint">マイク</label>
  <select id="mic"><option value="">既定のマイク</option></select>
@@ -71,20 +84,6 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  </div>
 </div>
 
-<div class="card tr" id="trCard"><h2>録音の文字起こし</h2>
- <p class="hint" style="margin-top:0">録音をこのパソコンの中で文字にします。音声はどこにも送信されません。初回だけ、文字起こし用のデータ（数百MB）をダウンロードします。2回目からは保存されたデータを使います（GitHubのURLで開いた場合）。</p>
- <label for="trModel">精度と速さ</label>
- <select id="trModel"><option value="small">標準（おすすめ・約250MB）</option><option value="base">速い（精度は低め・約80MB）</option><option value="turbo">高精度（性能の高いパソコン向け・約600MB）</option></select>
- <label for="trStart">録音を始めた時刻（文字起こしの時刻に使います）</label>
- <input type="time" step="1" id="trStart">
- <div class="go2"><button id="trPick">録音ファイルを選んで文字起こし</button><input type="file" id="trFile" accept="audio/*,video/webm,video/mp4,.webm,.m4a,.mp3,.wav" hidden></div>
- <p class="hint">録音を止めたあとは、「保存した録音」の「文字起こし」ボタンからも始められます。</p>
- <div id="trProg" hidden><div id="trBar"><i></i></div><div id="trTxt" aria-live="polite"></div><div class="go2"><button id="trStop">中止</button></div></div>
- <div id="trRes" hidden><textarea id="trOut" aria-label="文字起こしの結果"></textarea>
- <div class="go2"><button class="pri" id="trCopy">コピー（議事録ラインに貼る）</button><button id="trSave">テキストファイルで保存</button></div>
- <p class="hint">議事録ラインの「会話の記録」に貼り付けると、議事録の作成と、時刻からの聞き直しにそのまま使えます。話している人の名前は入らないので、必要なら直してください。</p></div>
-</div>
-
 <div class="card"><h2>メモ・印（録音中に使えます）</h2>
  <div class="memo"><input type="text" id="memo" placeholder="例：ここ重要／手数料の話" aria-label="メモ"><button id="mark" disabled>印をつける</button></div>
  <ul id="marks"></ul>
@@ -96,9 +95,24 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  <div class="files" id="files"></div>
  <div id="recover"></div>
 </div>
+</section>
+<section id="tabTr" role="tabpanel" aria-labelledby="tabBtnTr" hidden>
+<div class="card tr" id="trCard"><h2>録音ファイルを文字起こし</h2>
+ <p class="hint" style="margin-top:0">録音をこのパソコンの中で文字にします。音声はどこにも送信されません。初回だけ、文字起こし用のデータ（数百MB）をダウンロードします。2回目からは保存されたデータを使います（GitHubのURLで開いた場合）。</p>
+ <div class="drop" id="trDrop"><b>ここに録音ファイルをドラッグ＆ドロップ</b><span>または</span><button class="pri" id="trPick">録音ファイルを選ぶ</button><small>m4a・mp3・wav・webm に対応（スマホのボイスメモ、この録音ページで保存したファイルなど）</small><input type="file" id="trFile" accept="audio/*,video/webm,video/mp4,.webm,.m4a,.mp3,.wav" hidden></div>
+ <label for="trModel">精度と速さ</label>
+ <select id="trModel"><option value="small">標準（おすすめ・約250MB）</option><option value="base">速い（精度は低め・約80MB）</option><option value="turbo">高精度（性能の高いパソコン向け・約600MB）</option></select>
+ <label for="trStart">録音を始めた時刻（文字起こしの時刻に使います）</label>
+ <input type="time" step="1" id="trStart">
+ 
+ <div id="trProg" hidden><div id="trBar"><i></i></div><div id="trTxt" aria-live="polite"></div><div class="go2"><button id="trStop">中止</button></div></div>
+ <div id="trRes" hidden><textarea id="trOut" aria-label="文字起こしの結果"></textarea>
+ <div class="go2"><button class="pri" id="trCopy">コピー（議事録ラインに貼る）</button><button id="trSave">テキストファイルで保存</button></div>
+ <p class="hint">議事録ラインの「会話の記録」に貼り付けると、議事録の作成と、時刻からの聞き直しにそのまま使えます。話している人の名前は入らないので、必要なら直してください。</p></div>
+</div>
+</section>
 
-
-<div class="card"><h2>使い方</h2>
+<details class="card guide"><summary>使い方（くわしく）</summary>
  <ol>
  <li>このファイルを<b>Chrome</b>か<b>Edge</b>で開きます（ダブルクリックで開かない場合は、ファイルをブラウザの画面にドラッグ）。</li>
  <li>会議の直前に、赤い丸のボタンを押します。初回はマイクの使用許可が出るので「許可」を押します。</li>
@@ -106,10 +120,10 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  <li>議事録ラインの「録音して文字起こし」も押します（文字起こしと録音を同時に）。</li>
  <li>会議が終わったら、赤いボタン（四角）を押して停止します。録音ファイルがダウンロードフォルダに保存されます。</li>
  <li>議事録ラインで会議を開き、「録音ファイルを追加」から保存したファイルを選びます。開始時刻はファイル名から自動で入ります。</li>
- <li>文字にしたいときは、「保存した録音」の「文字起こし」を押します。終わったら「コピー」して、議事録ラインの「会話の記録」に貼り付け、「議事録を作成する」を押します。</li>
+ <li>文字にしたいときは、「保存した録音」の「文字起こし」を押すか、上の「2 録音ファイルを文字起こし」タブにファイルを置きます。終わったら「コピー」して、議事録ラインの「会話の記録」に貼り付け、「議事録を作成する」を押します。</li>
  </ol>
  <p class="hint">録音中は、このページを閉じたりパソコンをスリープさせたりしないでください。万一ページが閉じても、途中まではこのパソコンに残っていて、次に開いたとき「前回の録音を復元」から保存できます。音量の目安：1時間で約15MB。</p>
-</div>
+</details>
 </main>
 <script>
 {
@@ -235,10 +249,9 @@ function clock(base,sec){const b=(base||'00:00:00').split(':').map(Number);let t
 function trMsg(t,p){$('#trTxt').textContent=t;if(p!=null)$('#trBar i').style.width=Math.round(p*100)+'%'}
 async function decode16k(blob){const ctx=new OfflineAudioContext(1,16000,16000);const buf=await ctx.decodeAudioData(await blob.arrayBuffer());
  if(buf.numberOfChannels===1)return buf.getChannelData(0).slice();const out=new Float32Array(buf.length);for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<d.length;i++)out[i]+=d[i]/buf.numberOfChannels}return out}
-async function transcribe(blob,name){if(trBusy)return;trBusy=true;trName=name;
- $('#trCard').scrollIntoView({behavior:'smooth',block:'start'});
+async function transcribe(blob,name){if(trBusy)return;showTab('tr');trBusy=true;trName=name;
  const st=parseStart(name);if(st)$('#trStart').value=st;
- $('#trProg').hidden=false;$('#trStop').hidden=false;$('#trRes').hidden=true;$('#trPick').disabled=true;trLines=[];trMsg('音声を読み込んでいます…',0);
+ $('#trProg').hidden=false;$('#trStop').hidden=false;$('#trRes').hidden=true;$('#trPick').disabled=true;$('#trDrop').classList.add('busy');trLines=[];trMsg('音声を読み込んでいます…',0);
  let audio;try{audio=await decode16k(blob)}catch(e){trMsg('この録音は読み込めませんでした。録音ページで保存したファイルか、m4a・mp3・wavでお試しください。');return trEnd()}
  const key=$('#trModel').value,gpu=!!navigator.gpu&&!!(await navigator.gpu.requestAdapter().catch(()=>null));
  if(key==='turbo'&&!gpu&&!confirm('このパソコンでは高精度モードがとても遅くなります（1時間の会議で数時間）。「標準」に切り替えることをおすすめします。このまま続けますか？')){return trEnd()}
@@ -263,6 +276,17 @@ $('#trFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)trans
 $('#trStart').onchange=()=>{};
 $('#trCopy').onclick=async e=>{const t=$('#trOut').value;try{await navigator.clipboard.writeText(t);e.target.textContent='コピーしました';setTimeout(()=>e.target.textContent='コピー（議事録ラインに貼る）',1600)}catch(_){$('#trOut').select()}};
 $('#trSave').onclick=()=>{const u=URL.createObjectURL(new Blob([$('#trOut').value],{type:'text/plain'}));save(u,(trName||'録音').replace(/\.[^.]+$/,'')+'_文字起こし.txt')};
+
+/* ---- タブ ---- */
+function showTab(t){const tr=t==='tr';$('#tabRec').hidden=tr;$('#tabTr').hidden=!tr;$('#tabBtnRec').setAttribute('aria-selected',!tr);$('#tabBtnTr').setAttribute('aria-selected',tr);try{history.replaceState(null,'',tr?'#mojiokoshi':'#')}catch(e){}}
+for(const b of document.querySelectorAll('.tabs button'))b.onclick=()=>showTab(b.dataset.tab);
+if(/mojiokoshi|transcribe/.test(location.hash))showTab('tr');
+addEventListener('hashchange',()=>showTab(/mojiokoshi/.test(location.hash)?'tr':'rec'));
+const dz=$('#trDrop');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)transcribe(f,f.name)});
+addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();if(!$('#tabTr').hidden)return;const f=e.dataTransfer&&e.dataTransfer.files[0];if(f&&/audio|video|\.(m4a|mp3|wav|webm)$/i.test(f.type+' '+f.name)){showTab('tr');transcribe(f,f.name)}});
 
 addEventListener('beforeunload',e=>{if((rec&&rec.state==='recording')||trBusy){e.preventDefault();e.returnValue=''}});
 }
