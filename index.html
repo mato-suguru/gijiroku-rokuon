@@ -71,19 +71,7 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  </div>
 </div>
 
-<div class="card"><h2>メモ・印（録音中に使えます）</h2>
- <div class="memo"><input type="text" id="memo" placeholder="例：ここ重要／手数料の話" aria-label="メモ"><button id="mark" disabled>印をつける</button></div>
- <ul id="marks"></ul>
- <div style="margin-top:8px"><button id="copyMarks" disabled>メモをコピー</button> <span class="hint">議事録ラインの「会話の記録」に貼ると、時刻から聞き直せます。</span></div>
-</div>
-
-<div class="card"><h2>保存した録音</h2>
- <p class="hint" id="noFile">停止すると、録音ファイルが自動でダウンロードフォルダに保存されます。ファイル名に録音を始めた日時が入ります。</p>
- <div class="files" id="files"></div>
- <div id="recover"></div>
-</div>
-
-<div class="card tr" id="trCard"><h2>文字起こし</h2>
+<div class="card tr" id="trCard"><h2>録音の文字起こし</h2>
  <p class="hint" style="margin-top:0">録音をこのパソコンの中で文字にします。音声はどこにも送信されません。初回だけ、文字起こし用のデータ（数百MB）をダウンロードします。2回目からは保存されたデータを使います（GitHubのURLで開いた場合）。</p>
  <label for="trModel">精度と速さ</label>
  <select id="trModel"><option value="small">標準（おすすめ・約250MB）</option><option value="base">速い（精度は低め・約80MB）</option><option value="turbo">高精度（性能の高いパソコン向け・約600MB）</option></select>
@@ -96,6 +84,19 @@ ol{padding-left:22px;margin:6px 0}li{margin:4px 0}
  <div class="go2"><button class="pri" id="trCopy">コピー（議事録ラインに貼る）</button><button id="trSave">テキストファイルで保存</button></div>
  <p class="hint">議事録ラインの「会話の記録」に貼り付けると、議事録の作成と、時刻からの聞き直しにそのまま使えます。話している人の名前は入らないので、必要なら直してください。</p></div>
 </div>
+
+<div class="card"><h2>メモ・印（録音中に使えます）</h2>
+ <div class="memo"><input type="text" id="memo" placeholder="例：ここ重要／手数料の話" aria-label="メモ"><button id="mark" disabled>印をつける</button></div>
+ <ul id="marks"></ul>
+ <div style="margin-top:8px"><button id="copyMarks" disabled>メモをコピー</button> <span class="hint">議事録ラインの「会話の記録」に貼ると、時刻から聞き直せます。</span></div>
+</div>
+
+<div class="card"><h2>保存した録音</h2>
+ <p class="hint" id="noFile">停止すると、録音ファイルが自動でダウンロードフォルダに保存されます。ファイル名に録音を始めた日時が入ります。</p>
+ <div class="files" id="files"></div>
+ <div id="recover"></div>
+</div>
+
 
 <div class="card"><h2>使い方</h2>
  <ol>
